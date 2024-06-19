@@ -1,0 +1,2 @@
+include versioneer.py
+include q2_usearch/_version.py
