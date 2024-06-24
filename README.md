@@ -1,6 +1,6 @@
 # q2-usearch
 
-A [QIIME 2](https://qiime2.org) plugin [developed](https://develop.qiime2.org) by Thanh Le Viet (thanh@cloudbinfies.com). 🔌
+A [QIIME 2](https://qiime2.org) plugin [developed](https://develop.qiime2.org) 🔌
 
 ## Installation instructions
 
@@ -83,7 +83,7 @@ Have fun! 😎
 
 ## About
 
-The `q2-usearch` Python package was [created from template](https://develop.qiime2.org/en/latest/plugins/tutorials/create-from-template.html).
+The `q2-usearch` Python package was [created from this template](https://develop.qiime2.org/en/latest/plugins/tutorials/create-from-template.html).
 To learn more about `q2-usearch`, refer to the [project website](https://github.com/quadram-institute-bioscience/q2-usearch).
 To learn how to use QIIME 2, refer to the [QIIME 2 User Documentation](https://docs.qiime2.org).
 To learn QIIME 2 plugin development, refer to [*Developing with QIIME 2*](https://develop.qiime2.org).
@@ -93,3 +93,7 @@ Please be aware that because community plugins are developed by the QIIME 2 deve
 More information on development and support for community plugins can be found [here](https://library.qiime2.org).
 If you need help with a community plugin, first refer to the [project website](https://github.com/quadram-institute-bioscience/q2-usearch).
 If that page doesn't provide information on how to get help, or you need additional help, head to the [Community Plugins category](https://forum.qiime2.org/c/community-contributions/community-plugins/14) on the QIIME 2 Forum where the QIIME 2 developers will do their best to help you.
+
+## Authors
+
+- Thanh Le Viet (thanh.le-viet[at]quadram[dot]ac[dot]uk).
