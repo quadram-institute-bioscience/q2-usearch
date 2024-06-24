@@ -34,7 +34,7 @@ If you're in a conda environment, deactivate it by running `conda deactivate`.
 Then, run:
 
 ```shell
-conda env create -n q2-usearch-dev --file ./environments/q2-usearch-qiime2-amplicon-2024.5.yml
+conda env create -n q2-usearch-dev --file ./environments/qiime2-tiny-2024.5-py38-linux-conda.yml
 ```
 
 After this completes, activate the new environment you created by running:
@@ -43,10 +43,10 @@ After this completes, activate the new environment you created by running:
 conda activate q2-usearch-dev
 ```
 
-Finally, run:
+Install the plugin in dev mode:
 
 ```shell
-make install
+make dev
 ```
 
 ## Testing and using the most recent development version of `q2-usearch`
