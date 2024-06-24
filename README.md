@@ -1,6 +1,6 @@
 # q2-usearch
 
-A [QIIME 2](https://qiime2.org) plugin [developed](https://develop.qiime2.org) 🔌
+A [QIIME 2](https://qiime2.org) plugin [developed](https://develop.qiime2.org) by Core Bioinformatics, QIB.
 
 ## Installation instructions
 
