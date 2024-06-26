@@ -10,12 +10,11 @@
 import qiime2.plugin
 from qiime2.plugin import Citations, Plugin, Metadata, SemanticType
 from q2_usearch import __version__
-from q2_usearch._methods import duplicate_table
 import q2_usearch._fastqx
 import q2_usearch._cluster
+import q2_usearch._pipelines
 
-# from q2_usearch._type import UchimeStats
-from q2_usearch._format import UchimeStatsFmt, UchimeStatsDirFmt, USEARCHTextFile, USEARCHDirFmt
+from q2_usearch._format import USEARCHTextFile, USEARCHDirFmt
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.sample_data import SampleData
@@ -106,7 +105,7 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=q2_usearch._fastqx.fastx_truncate,
-    inputs={"demultiplexed_seqs": SequencesWithQuality},
+    inputs={"unique_seqs": SequencesWithQuality},
     parameters={
         "trunclen": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
         "stripleft": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
@@ -117,7 +116,7 @@ plugin.methods.register_function(
     },
     outputs=[("truncated_seqs", SequencesWithQuality)],
     input_descriptions={
-        "demultiplexed_seqs": "The single-end demultiplexed sequences to be truncated. Input sequences should be the output of mergepairs step."
+        "unique_seqs": "The single-end demultiplexed sequences to be truncated. Input sequences should be the output of mergepairs step."
     },
     parameter_descriptions={
         "trunclen": "Truncate sequences to the specified length.",
@@ -130,6 +129,42 @@ plugin.methods.register_function(
     output_descriptions={"truncated_seqs": "The resulting truncated sequences."},
     name="Truncate FASTQ sequences",
     description="This method truncates FASTQ sequences using the USEARCH fastx_truncate command.",
+)
+
+plugin.methods.register_function(
+    function=q2_usearch._fastqx.fastq_filter,
+    inputs={"input_seqs": SampleData[SequencesWithQuality]},
+    parameters={
+        "fastq_truncqual": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
+        "fastq_maxee": qiime2.plugin.Float % qiime2.plugin.Range(0, None),
+        "fastq_trunclen": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
+        "fastq_minlen": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
+        "fastq_stripleft": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
+        "fastq_maxee_rate": qiime2.plugin.Float % qiime2.plugin.Range(0, None),
+        "fastq_maxns": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
+        "relabel": qiime2.plugin.Bool,
+        "fastq_eeout": qiime2.plugin.Bool,
+        "sample": qiime2.plugin.Str,
+        "threads": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
+    },
+    outputs=[("filtered_seqs", SampleData[SequencesWithQuality])],
+    input_descriptions={"input_seqs": "The sequences to be filtered."},
+    parameter_descriptions={
+        "fastq_truncqual": "Truncate the read at the first position having quality score <= N.",
+        "fastq_maxee": "Discard reads with > E total expected errors.",
+        "fastq_trunclen": "Truncate sequences at the L'th base.",
+        "fastq_minlen": "Discard sequences with < L letters.",
+        "fastq_stripleft": "Delete the first N bases in the read.",
+        "fastq_maxee_rate": "Discard reads with > E expected errors per base.",
+        "fastq_maxns": "Discard if there are > k Ns in the read.",
+        "relabel": "Generate new labels for the output sequences.",
+        "fastq_eeout": "Append the expected number of errors to the label.",
+        "sample": "Append sample=string to the read label.",
+        "threads": "Number of threads to use.",
+    },
+    output_descriptions={"filtered_seqs": "The filtered sequences."},
+    name="Filter FASTQ sequences",
+    description="This method filters FASTQ sequences based on various quality criteria using USEARCH.",
 )
 
 plugin.methods.register_function(
@@ -188,4 +223,41 @@ plugin.methods.register_function(
     },
     name="Cluster OTUs using UPARSE",
     description="Clusters sequences into OTUs using the UPARSE algorithm.",
+)
+
+# Register the pipeline function
+plugin.pipelines.register_function(
+    function=q2_usearch._pipelines.denoise_pipeline,
+    inputs={"sequences": SampleData[SequencesWithQuality]},
+    parameters={
+        "minsize": qiime2.plugin.Int,
+        "relabel": qiime2.plugin.Str,
+        "unoise_alpha": qiime2.plugin.Float,
+        "pct_identity": qiime2.plugin.Float,
+        "out_denoised": qiime2.plugin.Bool,
+        "threads": qiime2.plugin.Int,
+    },
+    outputs=[
+        ("feature_table", FeatureTable[Frequency]),
+        ("feature_sequences", FeatureData[Sequence]),
+        ("otu_table", UsearchText),
+        ("denoised_sequences", SampleData[SequencesWithQuality]),
+    ],
+    input_descriptions={"sequences": "The input sequences to be processed."},
+    parameter_descriptions={
+        "minsize": "Minimum size for OTU clustering and UNOISE3.",
+        "relabel": "Prefix for OTU labels.",
+        "unoise_alpha": "Alpha parameter for UNOISE3 algorithm.",
+        "pct_identity": "Percent identity for OTU mapping.",
+        "out_denoised": "Output denoised reads.",
+        "threads": "Number of threads to use for processing.",
+    },
+    output_descriptions={
+        "feature_table": "The resulting feature table.",
+        "feature_sequences": "The resulting feature sequences.",
+        "otu_table": "The OTU table in USEARCH format.",
+        "denoised_sequences": "The denoised sequences (if out_denoised is True).",
+    },
+    name="Example microbiome analysis pipeline",
+    description="A pipeline that follows recommended steps for microbiome analysis using USEARCH\n👉 https://drive5.com/usearch/manual/uparse_pipeline.html.\nfastx_uniques ➡️ cluster_otus ➡️ unoise3 ➡️ otutab",
 )

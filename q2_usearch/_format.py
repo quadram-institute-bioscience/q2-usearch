@@ -1,5 +1,6 @@
 # ----------------------------------------------------------------------------
 # Copyright (c) 2016-2023, QIIME 2 development team.
+# Copyright (c) 2024, Thanh Le Viet, Core Bioinformatics, Quadram Institute Bioscience
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -8,10 +9,9 @@
 
 import csv
 
-import numpy as np
+# import numpy as np
 import qiime2.plugin.model as model
 from qiime2.plugin import ValidationError
-
 
 
 class USEARCHTextFile(model.TextFileFormat):
@@ -34,7 +34,7 @@ class UchimeStatsFmt(model.TextFileFormat):
                             ' Should be exactly 18.' % (i + 1))
 
     def _validate_(self, level):
-        record_count_map = {'min': 5, 'max': np.inf}
+        record_count_map = {'min': 5, 'max': float('inf')}
         self._check_n_records(record_count_map[level])
 
 

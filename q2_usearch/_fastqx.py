@@ -152,6 +152,105 @@ def fastx_truncate(
 
     return truncated_seqs
 
+def fastq_filter(
+    input_seqs: SingleLanePerSampleSingleEndFastqDirFmt,
+    fastq_truncqual: int = None,
+    fastq_maxee: float = None,
+    fastq_trunclen: int = None,
+    fastq_minlen: int = None,
+    fastq_stripleft: int = None,
+    fastq_maxee_rate: float = None,
+    fastq_maxns: int = None,
+    relabel: bool = False,
+    fastq_eeout: bool = False,
+    sample: str = None,
+    threads: int = 1,
+) -> SingleLanePerSampleSingleEndFastqDirFmt:
+    filtered_seqs = SingleLanePerSampleSingleEndFastqDirFmt()
+
+    # Read the manifest file
+    manifest = pd.read_csv(
+        os.path.join(str(input_seqs), input_seqs.manifest.pathspec),
+        header=0,
+        comment="#",
+    )
+
+    # Update file paths in manifest
+    manifest["filename"] = manifest["filename"].apply(
+        lambda x: os.path.join(str(input_seqs), x)
+    )
+
+    # Create a new manifest for filtered sequences
+    filtered_manifest = FastqManifestFormat()
+    filtered_manifest_fh = filtered_manifest.open()
+    _write_manifest_header(filtered_manifest_fh)
+
+    # Process each sample
+    for _, row in manifest.iterrows():
+        sample_id = row["sample-id"]
+        input_fp = row["filename"]
+
+        # Generate output paths
+        output_gz, output_fq = _get_output_paths(filtered_seqs, sample_id, 0, 1)
+        discarded_gz, discarded_fq = _get_output_paths(
+            filtered_seqs, f"{sample_id}_discarded", 0, 1
+        )
+
+        # Prepare USEARCH command arguments
+        cmd_args = [
+            "usearch",
+            "-fastq_filter",
+            input_fp,
+            "-fastqout",
+            output_fq,
+            "-fastqout_discarded",
+            discarded_fq,
+            "-threads",
+            str(threads),
+        ]
+
+        if fastq_truncqual is not None:
+            cmd_args.extend(["-fastq_truncqual", str(fastq_truncqual)])
+        if fastq_maxee is not None:
+            cmd_args.extend(["-fastq_maxee", str(fastq_maxee)])
+        if fastq_trunclen is not None:
+            cmd_args.extend(["-fastq_trunclen", str(fastq_trunclen)])
+        if fastq_minlen is not None:
+            cmd_args.extend(["-fastq_minlen", str(fastq_minlen)])
+        if fastq_stripleft is not None:
+            cmd_args.extend(["-fastq_stripleft", str(fastq_stripleft)])
+        if fastq_maxee_rate is not None:
+            cmd_args.extend(["-fastq_maxee_rate", str(fastq_maxee_rate)])
+        if fastq_maxns is not None:
+            cmd_args.extend(["-fastq_maxns", str(fastq_maxns)])
+        if relabel:
+            cmd_args.extend(["-relabel", f"{sample_id}_"])
+        if fastq_eeout:
+            cmd_args.append("-fastq_eeout")
+        if sample:
+            cmd_args.extend(["-sample", sample])
+
+        # Run USEARCH command
+        run_command(cmd_args)
+
+        # Compress output files
+        run_command(["gzip", output_fq])
+        run_command(["gzip", discarded_fq])
+
+        # Update manifest
+        filtered_manifest_fh.write(f"{sample_id},{output_gz.name},forward\n")
+
+    filtered_manifest_fh.close()
+    filtered_seqs.manifest.write_data(filtered_manifest, FastqManifestFormat)
+
+    # Copy metadata
+    metadata = YamlFormat()
+    with open(os.path.join(str(input_seqs), input_seqs.metadata.pathspec), "r") as f:
+        metadata.path.write_text(f.read())
+    filtered_seqs.metadata.write_data(metadata, YamlFormat)
+
+    return filtered_seqs
+
 
 def fastx_get_sample_names():
     pass

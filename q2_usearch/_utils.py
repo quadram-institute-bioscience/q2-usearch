@@ -18,7 +18,20 @@ from q2_types.feature_data import DNAFASTAFormat
 
 
 class USearchError(Exception):
-    pass
+    """Exception raised for errors in the USEARCH process.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message="USEARCH command failed"):
+        self.message = message
+        super().__init__(self.message)
+
+
+def validate_params(params: list):
+    if any(param < 0 for param in params):
+        raise ValueError("The parameter must be greater than or equal to 0.0.")
 
 def run_command(cmd, verbose=True):
     """
