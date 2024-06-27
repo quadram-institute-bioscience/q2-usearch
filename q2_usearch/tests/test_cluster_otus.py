@@ -1,6 +1,5 @@
 from qiime2.plugin.testing import TestPluginBase
 from unittest.mock import patch
-import os
 from qiime2 import Artifact
 from q2_types.feature_data import DNAFASTAFormat, FeatureData, Sequence
 from q2_usearch._cluster import cluster_otus
@@ -9,14 +8,13 @@ from q2_usearch._format import USEARCHTextFile
 
 
 class TestClusterOtus(TestPluginBase):
-    package = "q2_usearch"
+    package = "q2_usearch.tests"
 
     def setUp(self):
         super().setUp()
 
         # Load the real test file
-        test_dir = self.get_data_path(".")
-        sequences_fp = os.path.join(test_dir, "uniques_5k.fa")
+        sequences_fp = self.get_data_path("uniques_5k.fa")
 
         # Import the file as a QIIME 2 Artifact
         sequences_artifact = Artifact.import_data(FeatureData[Sequence], sequences_fp)

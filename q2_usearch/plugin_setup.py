@@ -112,19 +112,18 @@ plugin.methods.register_function(
         "stripright": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
         "padlen": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
         "relabel": qiime2.plugin.Bool,
-        "threads": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
+
     },
     outputs=[("truncated_seqs", SequencesWithQuality)],
     input_descriptions={
         "unique_seqs": "The single-end demultiplexed sequences to be truncated. Input sequences should be the output of mergepairs step."
     },
     parameter_descriptions={
-        "trunclen": "Truncate sequences to the specified length.",
+        "trunclen": "Truncate sequences to the specified n length.",
         "stripleft": "Strip the specified number of bases from the start of each sequence.",
         "stripright": "Strip the specified number of bases from the end of each sequence.",
-        "padlen": "Pad sequences with N's to the specified length.",
+        "padlen": "Pad sequences with N's to the specified n length.",
         "relabel": "Relabel sequences with their sample ID.",
-        "threads": "Number of threads to use for processing.",
     },
     output_descriptions={"truncated_seqs": "The resulting truncated sequences."},
     name="Truncate FASTQ sequences",

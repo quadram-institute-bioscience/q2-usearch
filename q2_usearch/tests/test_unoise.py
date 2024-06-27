@@ -9,14 +9,13 @@ from q2_usearch._utils import USearchError
 
 
 class TestUnoise3(TestPluginBase):
-    package = "q2_usearch"
+    package = "q2_usearch.tests"
 
     def setUp(self):
         super().setUp()
 
         # Load the real test file
-        test_dir = self.get_data_path(".")
-        sequences_fp = os.path.join(test_dir, "uniques_5k.fa")
+        sequences_fp = self.get_data_path("uniques_5k.fa")
 
         # Import the file as a QIIME 2 Artifact
         sequences_artifact = Artifact.import_data(FeatureData[Sequence], sequences_fp)
@@ -52,9 +51,7 @@ class TestUnoise3(TestPluginBase):
     @patch("q2_usearch._unoise.run_command")
     def test_unoise3_custom_params(self, mock_run_command):
         # Test with custom parameters
-        zotus_seqs, tabbed_out = unoise3(
-            self.sequences, minsize=10, unoise_alpha=1.5
-        )
+        zotus_seqs, tabbed_out = unoise3(self.sequences, minsize=10, unoise_alpha=1.5)
 
         # Check if run_command was called with the correct command
         expected_cmd = [

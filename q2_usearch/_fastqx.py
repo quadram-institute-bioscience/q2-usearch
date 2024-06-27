@@ -8,6 +8,8 @@
 # ----------------------------------------------------------------------------
 
 import os
+import gzip
+import shutil
 import tempfile
 import sqlite3
 import biom
@@ -88,13 +90,12 @@ def fastx_uniques(sequences: QIIME1DemuxDirFmt,
 
 def fastx_truncate(
     unique_seqs: SingleLanePerSampleSingleEndFastqDirFmt,
-    trunclen: int = None,
-    stripleft: int = None,
-    stripright: int = None,
-    padlen: int = None,
+    trunclen: int = 150,
+    stripleft: int = 0,
+    stripright: int = 0,
+    padlen: int = 100,
     relabel: bool = False,
-    threads: int = 1,
-) -> SingleLanePerSampleSingleEndFastqDirFmt:
+) -> (SingleLanePerSampleSingleEndFastqDirFmt): # type: ignore
     truncated_seqs = SingleLanePerSampleSingleEndFastqDirFmt()
 
     # Read the manifest file
@@ -114,43 +115,89 @@ def fastx_truncate(
     truncated_manifest_fh = truncated_manifest.open()
     _write_manifest_header(truncated_manifest_fh)
 
+    # Initialize a list to store information about missing files
+    missing_files = []
+
     # Process each sample
     for _, row in manifest.iterrows():
         sample_id = row["sample-id"]
         input_fp = row["filename"]
 
-        # Generate output path
-        output_gz, output_fq = _get_output_paths(truncated_seqs, sample_id, 0, 1)
+        # Create a temporary directory for this sample
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Check if input file is compressed
+            if input_fp.endswith(".gz"):
+                # Decompress the file
+                uncompressed_fp = os.path.join(
+                    temp_dir, f"{sample_id}_uncompressed.fastq"
+                )
+                with gzip.open(input_fp, "rb") as f_in:
+                    with open(uncompressed_fp, "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+            else:
+                uncompressed_fp = input_fp
 
-        # Prepare USEARCH command arguments
-        _trunclen = f"-trunclen {trunclen}" if trunclen else ""
-        _stripleft = f"-stripleft {stripleft}" if stripleft else ""
-        _stripright = f"-stripright {stripright}" if stripright else ""
-        _padlen = f"-padlen {padlen}" if padlen else ""
-        _relabel = f"-relabel {sample_id}_" if relabel else ""
+            # Generate output path
+            output_fp = os.path.join(temp_dir, f"{sample_id}_truncated.fastq")
 
-        # Process reads
-        _cmd = f"usearch -fastx_truncate {input_fp} -fastqout {output_fq} {_trunclen} {_stripleft} {_stripright} {_padlen} {_relabel} -threads {threads}".strip()
-        run_command(shlex.split(_cmd))
+            # Prepare USEARCH command arguments
+            cmd = [
+                "usearch",
+                "-fastx_truncate",
+                uncompressed_fp,
+                "-fastqout",
+                output_fp,
+            ]
 
-        # Compress output file
-        run_command(["gzip", output_fq])
+            if trunclen is not None:
+                cmd.extend(["-trunclen", str(trunclen)])
+            if stripleft is not None:
+                cmd.extend(["-stripleft", str(stripleft)])
+            if stripright is not None:
+                cmd.extend(["-stripright", str(stripright)])
+            if padlen is not None:
+                cmd.extend(["-padlen", str(padlen)])
+            if relabel:
+                cmd.extend(["-relabel", f"{sample_id}_"])
 
-        # Update manifest
-        truncated_manifest_fh.write(f"{sample_id},{output_gz.name},forward\n")
+            # Process reads
+            run_command(cmd)
+
+            # Check if the output file exists and is not empty
+            if os.path.exists(output_fp) and os.path.getsize(output_fp) > 0:
+                # Compress output file
+                final_output_fp = os.path.join(
+                    str(truncated_seqs), f"{sample_id}_truncated.fastq.gz"
+                )
+                with open(output_fp, "rb") as f_in:
+                    with gzip.open(final_output_fp, "wb") as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+
+                # Update manifest
+                truncated_manifest_fh.write(
+                    f"{sample_id},{os.path.basename(final_output_fp)},forward\n"
+                )
+            else:
+                # Record missing file
+                missing_files.append(
+                    {
+                        "sample_id": sample_id,
+                        "input_file": input_fp,
+                        "reason": "Output file not created or empty",
+                    }
+                )
 
     truncated_manifest_fh.close()
     truncated_seqs.manifest.write_data(truncated_manifest, FastqManifestFormat)
 
     # Copy metadata
     metadata = YamlFormat()
-    with open(
-        os.path.join(str(unique_seqs), unique_seqs.metadata.pathspec), "r"
-    ) as f:
+    with open(os.path.join(str(unique_seqs), unique_seqs.metadata.pathspec), "r") as f:
         metadata.path.write_text(f.read())
     truncated_seqs.metadata.write_data(metadata, YamlFormat)
 
     return truncated_seqs
+
 
 def fastq_filter(
     input_seqs: SingleLanePerSampleSingleEndFastqDirFmt,
