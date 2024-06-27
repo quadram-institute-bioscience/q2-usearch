@@ -9,7 +9,7 @@ lint:
 	flake8
 
 test: all
-	py.test -vvv
+	py.test -vvv /data/qiime-dev/q2-usearch/q2_usearch/tests/test_fastx_truncate.py::TestFastxTruncate::test_fastx_truncate_custom_params
 
 install: all
 	pip install .
