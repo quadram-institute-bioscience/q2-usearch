@@ -28,7 +28,7 @@ from q2_types.per_sample_sequences import (
     FastqManifestFormat, YamlFormat)
 
 
-from ._utils import run_command, _fasta_with_sizes, _error_on_nonoverlapping_ids
+from ._utils import run_command, validate_params
 import logging as logger
 
 logger.basicConfig(level=logger.DEBUG, format='%(asctime)s - %(message)s')
@@ -90,12 +90,13 @@ def fastx_uniques(sequences: QIIME1DemuxDirFmt,
 
 def fastx_truncate(
     unique_seqs: SingleLanePerSampleSingleEndFastqDirFmt,
-    trunclen: int = 150,
+    trunclen: int = 200,
     stripleft: int = 0,
     stripright: int = 0,
-    padlen: int = 100,
+    padlen: int = 200,
     relabel: bool = False,
 ) -> (SingleLanePerSampleSingleEndFastqDirFmt): # type: ignore
+    validate_params([trunclen, stripleft, stripright, padlen])
     truncated_seqs = SingleLanePerSampleSingleEndFastqDirFmt()
 
     # Read the manifest file
@@ -104,6 +105,7 @@ def fastx_truncate(
         header=0,
         comment="#",
     )
+    # logger.info(f"MANIFEST: {manifest}")
 
     # Update file paths in manifest
     manifest["filename"] = manifest["filename"].apply(
@@ -119,7 +121,7 @@ def fastx_truncate(
     missing_files = []
 
     # Process each sample
-    for _, row in manifest.iterrows():
+    for i, row in manifest.iterrows():
         sample_id = row["sample-id"]
         input_fp = row["filename"]
 
@@ -137,8 +139,14 @@ def fastx_truncate(
             else:
                 uncompressed_fp = input_fp
 
+            gz_truncated_path, fq_truncated_path = _get_output_paths(
+                truncated_seqs, sample_id, i, 1
+            )
+
             # Generate output path
-            output_fp = os.path.join(temp_dir, f"{sample_id}_truncated.fastq")
+            # _output_file_name = f"{sample_id}_L001_R1_001.fastq.gz"
+            _output_file_name = os.path.basename(fq_truncated_path)
+            output_fp = os.path.join(temp_dir, _output_file_name)
 
             # Prepare USEARCH command arguments
             cmd = [
@@ -146,7 +154,7 @@ def fastx_truncate(
                 "-fastx_truncate",
                 uncompressed_fp,
                 "-fastqout",
-                output_fp,
+                fq_truncated_path,
             ]
 
             if trunclen is not None:
@@ -162,22 +170,29 @@ def fastx_truncate(
 
             # Process reads
             run_command(cmd)
-
             # Check if the output file exists and is not empty
-            if os.path.exists(output_fp) and os.path.getsize(output_fp) > 0:
+            if (
+                os.path.exists(fq_truncated_path)
+                and os.path.getsize(fq_truncated_path) > 0
+            ):
                 # Compress output file
-                final_output_fp = os.path.join(
-                    str(truncated_seqs), f"{sample_id}_truncated.fastq.gz"
-                )
-                with open(output_fp, "rb") as f_in:
-                    with gzip.open(final_output_fp, "wb") as f_out:
+                final_output_fp = os.path.join(str(truncated_seqs), _output_file_name)
+                with open(fq_truncated_path, "rb") as f_in:
+                    with gzip.open(gz_truncated_path, "wb") as f_out:
+                        logger.info(f"Copying {output_fp} to {final_output_fp}")
                         shutil.copyfileobj(f_in, f_out)
-
-                # Update manifest
-                truncated_manifest_fh.write(
+                os.remove(fq_truncated_path)
+                logger.info(f"Output file created: {final_output_fp}")
+                logger.info(
                     f"{sample_id},{os.path.basename(final_output_fp)},forward\n"
                 )
+                # Update manifest
+                # Bear in mind the fasqt file is copied into a gzipped file
+                truncated_manifest_fh.write(
+                    f"{sample_id},{os.path.basename(final_output_fp)}.gz,forward\n"
+                )
             else:
+                logger.info("No sample passed!")
                 # Record missing file
                 missing_files.append(
                     {
@@ -189,7 +204,9 @@ def fastx_truncate(
 
     truncated_manifest_fh.close()
     truncated_seqs.manifest.write_data(truncated_manifest, FastqManifestFormat)
-
+    logger.info(f"MANIFEST: {truncated_manifest.path}")
+    with open(truncated_manifest.path, "r") as f:
+        logger.info(f.read())
     # Copy metadata
     metadata = YamlFormat()
     with open(os.path.join(str(unique_seqs), unique_seqs.metadata.pathspec), "r") as f:
@@ -321,34 +338,19 @@ def _merge_pairs_w_command_output(
 ): # type: ignore
     # create formats
     """
-     Merges paired-end reads from a demultiplexed sequence input.
-
-    This function merges paired-end reads using the USEARCH algorithm, allowing for
-    various parameters to be specified that control the merging process. It handles
-    both the merging of reads that overlap and the retention of reads that do not
-    merge. The function also compresses the output reads and generates manifest files
-    for both merged and unmerged reads.
+    Merges paired-end reads from demultiplexed sequences using USEARCH.
 
     Parameters:
-    - demultiplexed_seqs (SingleLanePerSamplePairedEndFastqDirFmt): The input demultiplexed sequences.
-    - maxdiffs (int): The maximum number of differences allowed in the overlap region.
-    - pctid (int): The minimum percentage identity required in the overlap.
-    - nostagger (bool): If True, staggered reads will not be merged.
-    - minmergelen (int): The minimum length of merged reads to be retained.
-    - maxmergelen (int): The maximum length of merged reads to be retained.
-    - minqual (int): The minimum quality score to keep a base during merging.
-    - minovlen (int): The minimum overlap length required to merge reads.
-    - relabel (str): The character to use for relabeling the merged reads.
-    - threads (int): The number of threads to use for the merging process.
+    - demultiplexed_seqs (SingleLanePerSamplePairedEndFastqDirFmt): Input sequences.
+    - maxdiffs, pctid, minmergelen, maxmergelen, minqual, minovlen (int): Parameters controlling merging.
+    - nostagger (bool): If True, excludes staggered reads from merging.
+    - relabel (str): Character for relabeling merged reads.
+    - threads (int): Number of threads for merging.
 
     Returns:
-    - A tuple containing the command used for merging, the directory format object for merged reads,
-      and the directory format object for unmerged reads.
+    - Tuple with the USEARCH command, directory format objects for merged and unmerged reads.
 
-    The function first initializes the output formats and manifest files, then iterates over each
-    sample to merge the reads. It constructs and executes a USEARCH command for each sample, handling
-    both merged and unmerged outputs. Finally, it writes the manifest files and updates the metadata
-    for both merged and unmerged reads.
+    Initializes output formats, merges reads per sample with USEARCH, handles outputs, and writes manifest files.
     """
     merged = SingleLanePerSampleSingleEndFastqDirFmt()
     unmerged = SingleLanePerSamplePairedEndFastqDirFmt()

@@ -105,16 +105,18 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=q2_usearch._fastqx.fastx_truncate,
-    inputs={"unique_seqs": SequencesWithQuality},
+    inputs={
+        "unique_seqs": SampleData[SequencesWithQuality]
+        | SampleData[JoinedSequencesWithQuality]
+    },
     parameters={
         "trunclen": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
         "stripleft": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
         "stripright": qiime2.plugin.Int % qiime2.plugin.Range(0, None),
         "padlen": qiime2.plugin.Int % qiime2.plugin.Range(1, None),
         "relabel": qiime2.plugin.Bool,
-
     },
-    outputs=[("truncated_seqs", SequencesWithQuality)],
+    outputs=[("truncated_seqs", SampleData[SequencesWithQuality])],
     input_descriptions={
         "unique_seqs": "The single-end demultiplexed sequences to be truncated. Input sequences should be the output of mergepairs step."
     },

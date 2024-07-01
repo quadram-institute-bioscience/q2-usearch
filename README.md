@@ -1,4 +1,5 @@
 # q2-usearch
+[![Test and lint](https://github.com/quadram-institute-bioscience/q2-usearch/actions/workflows/ci.yml/badge.svg)](https://github.com/quadram-institute-bioscience/q2-usearch/actions/workflows/ci.yml)
 
 A [QIIME 2](https://qiime2.org) plugin [developed](https://develop.qiime2.org) by Core Bioinformatics, QIB.
 
