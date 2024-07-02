@@ -49,7 +49,7 @@ jobs:
         pip install -q flake8
 
     - name: run flake8
-      run: flake8 --ignore=E501
+      run: flake8 --ignore=E501,W503
 
     - name: run q2lint
       run: q2lint

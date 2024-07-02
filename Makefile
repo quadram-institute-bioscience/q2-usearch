@@ -6,7 +6,7 @@ all: ;
 
 lint:
 	q2lint
-	flake8
+	flake8 --ignore=E501,W503
 
 test: all
 	py.test -vvv

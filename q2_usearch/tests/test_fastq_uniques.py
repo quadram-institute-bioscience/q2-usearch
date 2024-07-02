@@ -19,6 +19,7 @@ from q2_types.per_sample_sequences import QIIME1DemuxDirFmt
 from q2_usearch._fastqx import fastx_uniques
 from q2_usearch._utils import USearchError
 
+
 class TestFastxUniques(TestPluginBase):
     package = "q2_usearch.tests"
 
@@ -83,12 +84,16 @@ class TestFastxUniques(TestPluginBase):
 
         # Check if the output file exists and is not empty
         self.assertTrue(os.path.exists(str(unique_sequences)))
-        self.assertGreater(os.path.getsize(str(unique_sequences)), 0, "Output file is empty")
+        self.assertGreater(
+            os.path.getsize(str(unique_sequences)), 0, "Output file is empty"
+        )
 
         # Check the content of the output file
-        with open(str(unique_sequences), 'r') as f:
+        with open(str(unique_sequences), "r") as f:
             content = f.read()
-            self.assertIn(">", content, "Output file does not contain FASTA format sequences")
+            self.assertIn(
+                ">", content, "Output file does not contain FASTA format sequences"
+            )
 
         # Count the number of sequences
         sequence_count = content.count(">")
@@ -101,22 +106,28 @@ class TestFastxUniques(TestPluginBase):
 
         # Run USEARCH directly
         with tempfile.TemporaryDirectory() as temp_dir:
-            usearch_output = os.path.join(temp_dir, 'usearch_uniques.fasta')
-            input_file = os.path.join(str(self.sequences), 'seqs.fna')
+            usearch_output = os.path.join(temp_dir, "usearch_uniques.fasta")
+            input_file = os.path.join(str(self.sequences), "seqs.fna")
 
             # Run USEARCH command
             usearch_cmd = [
                 "usearch",
-                "-fastx_uniques", input_file,
-                "-fastaout", usearch_output,
+                "-fastx_uniques",
+                input_file,
+                "-fastaout",
+                usearch_output,
                 "-sizeout",
-                "-relabel", "@"
+                "-relabel",
+                "@",
             ]
             subprocess.run(usearch_cmd, check=True)
 
             # Compare the outputs
-            self.assertTrue(filecmp.cmp(str(unique_sequences), usearch_output),
-                            "Outputs differ between fastx_uniques and direct USEARCH command")
+            self.assertTrue(
+                filecmp.cmp(str(unique_sequences), usearch_output),
+                "Outputs differ between fastx_uniques and direct USEARCH command",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
