@@ -45,11 +45,6 @@ _mp_defaults = {
     "threads": 1,
 }
 
-
-def fastq_filter():
-    pass
-
-
 def fastq_join():
     pass
 
