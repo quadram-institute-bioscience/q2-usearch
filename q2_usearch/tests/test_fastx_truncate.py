@@ -10,7 +10,9 @@ from q2_usearch._utils import USearchError
 
 import logging as logger
 import gzip
+
 logger.basicConfig(level=logger.DEBUG)
+
 
 class TestFastxTruncate(TestPluginBase):
     package = "q2_usearch.tests"
@@ -35,7 +37,7 @@ class TestFastxTruncate(TestPluginBase):
         truncated_seqs = fastx_truncate(self.sequences)
         # Check if the returned object is of the correct type
         self.assertIsInstance(truncated_seqs, SingleLanePerSampleSingleEndFastqDirFmt)
-    
+
     def test_fastx_truncate_custom_params(self):
         # Test with custom parameters
         truncated_seqs = fastx_truncate(
@@ -140,7 +142,7 @@ class TestFastxTruncate(TestPluginBase):
                     100,
                     "Sequence is longer than specified truncation length",
                 )
-    
+
 
 if __name__ == "__main__":
     unittest.main()

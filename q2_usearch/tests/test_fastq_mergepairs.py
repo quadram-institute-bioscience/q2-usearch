@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import unittest
 from unittest.mock import patch
 from qiime2.plugin.testing import TestPluginBase
 from qiime2 import Artifact
