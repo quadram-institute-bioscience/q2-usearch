@@ -9,7 +9,7 @@ lint:
 	flake8
 
 test: all
-	py.test
+	py.test -vvv
 
 install: all
 	pip install .

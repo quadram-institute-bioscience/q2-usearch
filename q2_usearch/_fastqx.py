@@ -11,52 +11,53 @@ import os
 import gzip
 import shutil
 import tempfile
-import sqlite3
-import biom
-import skbio
 import pandas as pd
 import shlex
 import yaml
 from typing import List
 
-from qiime2 import Metadata
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     QIIME1DemuxDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
-    FastqManifestFormat, YamlFormat)
+    FastqManifestFormat,
+    YamlFormat,
+)
 
 
 from ._utils import run_command, validate_params
 import logging as logger
 
-logger.basicConfig(level=logger.DEBUG, format='%(asctime)s - %(message)s')
+logger.basicConfig(level=logger.DEBUG, format="%(asctime)s - %(message)s")
 
 _mp_defaults = {
-    'maxdiffs': 5,
-    'pctid': 90,
-    'nostagger': False,
-    'minmergelen': 50,
-    'maxmergelen': 270,
-    'minqual': 0,
-    'minovlen': 16,
-    'trunctail': 2,
-    'minlen': 64,
-    'relabel': '@',
-    "threads": 1
+    "maxdiffs": 5,
+    "pctid": 90,
+    "nostagger": False,
+    "minmergelen": 50,
+    "maxmergelen": 270,
+    "minqual": 0,
+    "minovlen": 16,
+    "trunctail": 2,
+    "minlen": 64,
+    "relabel": "@",
+    "threads": 1,
 }
+
 
 def fastq_filter():
     pass
 
+
 def fastq_join():
     pass
+
 
 def fastq_mergepairs(
     demultiplexed_seqs: SingleLanePerSamplePairedEndFastqDirFmt,
     maxdiffs: int = _mp_defaults["maxdiffs"],
-    pctid: int = _mp_defaults['pctid'],
+    pctid: int = _mp_defaults["pctid"],
     nostagger: bool = _mp_defaults["nostagger"],
     minmergelen: int = _mp_defaults["minmergelen"],
     maxmergelen: int = _mp_defaults["maxmergelen"],
@@ -66,27 +67,37 @@ def fastq_mergepairs(
     threads: int = _mp_defaults["threads"],
 ) -> (SingleLanePerSampleSingleEndFastqDirFmt, SingleLanePerSamplePairedEndFastqDirFmt):  # type: ignore
     _, merged, unmerged = _merge_pairs_w_command_output(
-        demultiplexed_seqs, maxdiffs, pctid, nostagger, minmergelen, maxmergelen, minqual, minovlen, threads
+        demultiplexed_seqs,
+        maxdiffs,
+        pctid,
+        nostagger,
+        minmergelen,
+        maxmergelen,
+        minqual,
+        minovlen,
+        threads,
     )
     return merged, unmerged
 
 
-def fastx_uniques(sequences: QIIME1DemuxDirFmt,
-                  sizeout: bool = True,
-                  relabel: bool = True
-                 ) -> (DNAFASTAFormat): # type: ignore
+def fastx_uniques(
+    sequences: QIIME1DemuxDirFmt, sizeout: bool = True, relabel: bool = True
+) -> DNAFASTAFormat:  # type: ignore
     # TODO: the software crashes when uc/tableout is defined.
     # The magic converting from fastq to fasta happens here https://github.com/qiime2/q2-types/blob/70b511c9657e3b464d1b6c0ed18673a3f0990a48/q2_types/per_sample_sequences/_transformer.py#L188
     unique_sequences = DNAFASTAFormat()
     seqs_fp = f"{sequences}/seqs.fna"
     logger.debug(f"Seqs file: {seqs_fp}")
-    _relabel = "-relabel @" if relabel else "" # relabels the sequences with the sample name using the special symbol @
+    _relabel = (
+        "-relabel @" if relabel else ""
+    )  # relabels the sequences with the sample name using the special symbol @
     _sizeout = "-sizeout" if sizeout else ""
     _cmd = f"usearch -fastx_uniques {seqs_fp} -fastaout {unique_sequences} {_sizeout} {_relabel}".strip()
     cmd = shlex.split(_cmd)
     logger.debug(f"Command: {cmd}")
     run_command(cmd)
     return unique_sequences
+
 
 def fastx_truncate(
     unique_seqs: SingleLanePerSampleSingleEndFastqDirFmt,
@@ -95,7 +106,7 @@ def fastx_truncate(
     stripright: int = 0,
     padlen: int = 200,
     relabel: bool = False,
-) -> (SingleLanePerSampleSingleEndFastqDirFmt): # type: ignore
+) -> SingleLanePerSampleSingleEndFastqDirFmt:  # type: ignore
     validate_params([trunclen, stripleft, stripright, padlen])
     truncated_seqs = SingleLanePerSampleSingleEndFastqDirFmt()
 
@@ -335,7 +346,7 @@ def _merge_pairs_w_command_output(
     List[str],
     SingleLanePerSampleSingleEndFastqDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
-): # type: ignore
+):  # type: ignore
     # create formats
     """
     Merges paired-end reads from demultiplexed sequences using USEARCH.
@@ -365,7 +376,9 @@ def _merge_pairs_w_command_output(
     _write_manifest_header(merged_manifest_fh, add_warning=True)
     _write_manifest_header(unmerged_manifest_fh)
 
-    logger.debug(f"Manifests demultiplexed_seqs: {demultiplexed_seqs.manifest.pathspec}")
+    logger.debug(
+        f"Manifests demultiplexed_seqs: {demultiplexed_seqs.manifest.pathspec}"
+    )
     # generate input reads iterable
     manifest = pd.read_csv(
         os.path.join(str(demultiplexed_seqs), demultiplexed_seqs.manifest.pathspec),
@@ -405,7 +418,7 @@ def _merge_pairs_w_command_output(
         # Input
         _cmd = f"usearch -fastq_mergepairs {fwd_fp} -reverse {rev_fp} -fastqout {fq_merged_path}"
         # Output
-        _cmd += f" -fastqout_notmerged_fwd {fq_unmerged_fwd_path} -fastqout_notmerged_rev {fq_unmerged_rev_path}" 
+        _cmd += f" -fastqout_notmerged_fwd {fq_unmerged_fwd_path} -fastqout_notmerged_rev {fq_unmerged_rev_path}"
         # Options
         _relabel = f"-relabel {relabel}" if relabel else ""
         _cmd += f" -fastq_maxdiffs {maxdiffs} \
@@ -445,10 +458,10 @@ def _merge_pairs_w_command_output(
 
 
 def _get_output_paths(
-    format_: SingleLanePerSampleSingleEndFastqDirFmt, 
-    sample_id: str, 
-    barcode_id: int, 
-    direction: int
+    format_: SingleLanePerSampleSingleEndFastqDirFmt,
+    sample_id: str,
+    barcode_id: int,
+    direction: int,
 ) -> tuple[str, str]:
     """
     Generate output paths for the given format, sample ID, barcode ID, and direction.
@@ -469,7 +482,7 @@ def _get_output_paths(
     return path, str(path).strip(".gz")
 
 
-def _write_manifest_header(manifest_fh: str, add_warning: bool=False) -> None:
+def _write_manifest_header(manifest_fh: str, add_warning: bool = False) -> None:
     manifest_fh.write("sample-id,filename,direction\n")
     if add_warning:
         manifest_fh.write("")

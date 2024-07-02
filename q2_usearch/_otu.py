@@ -5,33 +5,17 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import os
-import tempfile
-import sqlite3
 
 import biom
-import skbio
-import pandas as pd
 
-from qiime2 import Metadata
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.feature_table import BIOMV210Format
 from q2_types.per_sample_sequences import (
-    QIIME1DemuxDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
-    SingleLanePerSamplePairedEndFastqDirFmt,
-    FastqManifestFormat,
-    YamlFormat,
 )
 
 from ._utils import (
     run_command,
-    _fasta_with_sizes,
-    _error_on_nonoverlapping_ids,
-    USearchError,
-    _uc_to_sqlite,
-    _collapse_f_from_sqlite,
-    _fasta_from_sqlite,
 )
 import shlex
 
@@ -62,6 +46,7 @@ def otutab(
     with biom.util.biom_open("otutab.biom") as f:
         tabbed_biomv210 = BIOMV210Format(f.name)
     return mapout, tabbed_biomv210, tabbed_out, unmapped
+
 
 # Not available in v12
 # def otu_norm(otutable: USEARCHTextFile, sample_size: int = 1000) -> USEARCHTextFile:

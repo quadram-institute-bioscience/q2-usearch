@@ -1,6 +1,5 @@
 from qiime2.plugin.testing import TestPluginBase
 from unittest.mock import patch
-import os
 from qiime2 import Artifact
 from q2_types.feature_data import DNAFASTAFormat, FeatureData, Sequence
 from q2_usearch._unoise import unoise3

@@ -7,19 +7,13 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-import os
-import tempfile
-import sqlite3
 
-import biom
-import skbio
-import pandas as pd
-from qiime2 import Metadata
 from q2_types.feature_data import DNAFASTAFormat
-from ._utils import run_command, validate_params, USearchError
+from ._utils import run_command, validate_params
 import shlex
 
 from ._format import USEARCHTextFile
+
 
 def cluster_otus(
     sequences: DNAFASTAFormat,
@@ -29,9 +23,9 @@ def cluster_otus(
 ) -> (DNAFASTAFormat, USEARCHTextFile):  # type: ignore
     otus_seqs = DNAFASTAFormat()
     uparse_out = USEARCHTextFile()
-    
+
     validate_params([minsize, threads])
-  
+
     _relabel = f"-relabel {relabel}"
     _minsize = f"-minsize {minsize}"
     _cmd = f"usearch -cluster_otus {sequences} -otus {otus_seqs} -uparseout {uparse_out} {_relabel} {_minsize} -threads {threads}".strip()
@@ -39,11 +33,14 @@ def cluster_otus(
     run_command(cmd)
     return otus_seqs, uparse_out
 
+
 def cluster_fast():
     pass
 
+
 def cluster_smallmem():
     pass
+
 
 def cluster_mt():
     pass

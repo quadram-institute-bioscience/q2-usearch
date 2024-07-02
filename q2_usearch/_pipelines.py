@@ -1,10 +1,3 @@
-import qiime2.plugin
-from q2_types.feature_data import FeatureData, Sequence
-from q2_types.feature_table import FeatureTable, Frequency
-from q2_types.sample_data import SampleData
-from ._format import USEARCHDirFmt
-
-
 # Define the pipeline function
 def denoise_pipeline(
     ctx,
@@ -50,5 +43,5 @@ def denoise_pipeline(
         otutab_output.feature_table,
         otutab_output.feature_sequences,
         otutab_output.otu_table,
-        otutab_output.denoised_sequences if out_denoised else None
+        otutab_output.denoised_sequences if out_denoised else None,
     )

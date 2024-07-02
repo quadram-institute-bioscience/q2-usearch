@@ -8,7 +8,7 @@
 # ----------------------------------------------------------------------------
 
 import qiime2.plugin
-from qiime2.plugin import Citations, Plugin, Metadata, SemanticType
+from qiime2.plugin import Citations, Plugin, SemanticType
 from q2_usearch import __version__
 import q2_usearch._fastqx
 import q2_usearch._cluster

@@ -5,16 +5,10 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import os
-import tempfile
 import subprocess
 import sqlite3
 
-import biom
 import skbio
-import pandas as pd
-from qiime2 import Metadata
-from q2_types.feature_data import DNAFASTAFormat
 
 
 class USearchError(Exception):
@@ -32,6 +26,7 @@ class USearchError(Exception):
 def validate_params(params: list):
     if any(param < 0 for param in params):
         raise ValueError("The parameter must be greater than or equal to 0.0.")
+
 
 def run_command(cmd, verbose=True):
     """
@@ -75,6 +70,7 @@ def run_command(cmd, verbose=True):
         if verbose:
             print(f"Command execution failed with error: {e}")
         raise
+
 
 def _fasta_with_sizes(input_fasta_fp, output_fasta_fp, table):
     """
@@ -127,6 +123,7 @@ def _fasta_with_sizes(input_fasta_fp, output_fasta_fp, table):
         check_extra_sequence_ids=False,
     )
 
+
 def _error_on_nonoverlapping_ids(
     table_ids, sequence_ids, check_extra_table_ids=True, check_extra_sequence_ids=True
 ):
@@ -161,7 +158,7 @@ def _error_on_nonoverlapping_ids(
                 "in sequences. The set of features in sequences "
                 "must be identical to the set of features in "
                 "table. Feature ids present in table but not "
-                f"sequences are: {', '.join(extra_table_ids)}" 
+                f"sequences are: {', '.join(extra_table_ids)}"
             )
 
     if check_extra_sequence_ids:
@@ -283,12 +280,14 @@ def _fasta_from_sqlite(conn, input_fasta_fp, output_fasta_fp):
     # -----------|------------------
     # r1         | ACGTACGTACGTACGT
     # r2         | AAAAAAAAAAAAAAAA
-    c.execute("""SELECT fcm.cluster_id, rs.sequence_string, MAX(fcm.count)
+    c.execute(
+        """SELECT fcm.cluster_id, rs.sequence_string, MAX(fcm.count)
                    FROM sorted_feature_cluster_map fcm
              INNER JOIN rep_seqs rs ON rs.feature_id = fcm.feature_id
                GROUP BY fcm.cluster_id
                ORDER BY fcm.cluster_id ASC;
-    """)
+    """
+    )
     with open(output_fasta_fp, "w") as output_seqs:
         while True:
             partial_results = c.fetchmany(size=100)
